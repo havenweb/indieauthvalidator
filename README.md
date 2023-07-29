@@ -23,6 +23,9 @@ Select your desired scopes and enter the url of your IndieAuth provider in the f
 ## Links
 
 IndieAuth Spec: https://indieauth.spec.indieweb.org/
+
 Micropub: https://indieweb.org/Micropub
+
 Microsub: https://indieweb.org/Microsub-spec
+
 Haven: https://github.com/havenweb/haven

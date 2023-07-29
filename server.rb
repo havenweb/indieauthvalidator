@@ -16,11 +16,13 @@ ENDPOINTS = [
 HISTORY = []
 SCOPES = [
 "profile", 
+"email",
 "read", 
 "create", 
 "update", 
 "delete", 
-"media"
+"media",
+"invalid"
 ]
 ## STATE["request_state"]
 ### code_verifier (random 128 chars of [A-Z][a-z][0-9]), internal state, not sent!
@@ -120,7 +122,7 @@ def create_request(request_state) # hash with code_verifier, state, and me
     "client_id" => "http://localhost:4567/",
     "redirect_uri" => "http://localhost:4567/redirect",
     "state" => request_state["state"],
-    "code_challenge" => Base64.urlsafe_encode64(Digest::SHA256.hexdigest(request_state["code_verifier"])),
+    "code_challenge" => Base64.urlsafe_encode64(Digest::SHA256.digest(request_state["code_verifier"])).chomp("="),
     "code_challenge_method" => "S256",
     "scope" => request_state["scope"]
   }  
@@ -211,5 +213,19 @@ get '/fetch_profile' do
 end
 
 get '/fetch_token' do
-  "This endpoint is not built yet"
+  post_params = create_profile_request(STATE["request_state"], STATE["auth_response"])
+  url = URI.parse(STATE["metadata"]["token_endpoint"])
+  resp = Net::HTTP.post_form(url, post_params)
+  while resp.is_a?(Net::HTTPRedirection) do
+    HISTORY << "Redirect in response, goin to : #{resp['location'] || ''}"
+    url = URI.parse(resp['location'])
+    resp = Net::HTTP.post_form(url, post_params)
+  end
+  if resp.is_a?(Net::HTTPSuccess)
+    STATE["token_response"] = JSON.parse(resp.body)
+  else
+    STATE["token_response"] = {class: resp.class, inspect: resp.inspect}
+  end
+  wrap_html("fetched token")
+  
 end
